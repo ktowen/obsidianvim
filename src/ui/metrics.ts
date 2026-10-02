@@ -23,7 +23,7 @@ export function cssFont(f: FontSpec, bold: boolean, italic: boolean): string {
 	return `${italic ? "italic " : ""}${bold ? "bold " : ""}${f.size}px ${f.family}`;
 }
 
-/** Parses 'guifont' ("JetBrains_Mono,Menlo:h14"). Only the size comes from `fallback`. */
+/** Parses 'guifont' ("JetBrains_Mono,Menlo:h14"). `fallback` stays last in the family list, so its icons still render. */
 export function parseGuifont(value: string, fallback: FontSpec): FontSpec | null {
 	if (!value) return null;
 	const [names = "", ...opts] = value.split(":");
@@ -37,5 +37,5 @@ export function parseGuifont(value: string, fallback: FontSpec): FontSpec | null
 		.map((n) => n.trim().replace(/_/g, " "))
 		.filter(Boolean)
 		.map((n) => `"${n}"`);
-	return { family: [...families, "monospace"].join(", "), size };
+	return { family: [...families, fallback.family].join(", "), size };
 }

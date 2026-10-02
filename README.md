@@ -329,17 +329,17 @@ npm run check     # format check + lint + type-check + tests (run before a commi
 
 ## Troubleshooting
 
-| Problem                                   | Check                                                                                                                                         |
-| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| "Cannot start Neovim"                     | "Neovim path" setting. Try the absolute path (`which nvim`)                                                                                   |
-| LSP or tools not found                    | "Start through login shell" is on. `:echo $PATH` in Neovim. Your PATH must be set in a login shell file (`~/.zprofile` or `~/.zshrc` for zsh) |
-| Icons show as boxes                       | "Font family" must have a Nerd Font that is installed. The font name is the family name, for example `JetBrainsMono NFM`, not the file name   |
-| A key goes to Obsidian, not Neovim        | Is it in "Obsidian hotkeys to keep"? Does the Neovim tab have focus (cursor is a filled block, not a hollow box)? Click the tab               |
-| A key does nothing                        | Is it an Obsidian hotkey that is not in the keep list? Neovim gets it. Check with `:nmap <key> :echo "got"<CR>`                               |
-| `@`, `[`, `]` do not type                 | "Option key as Meta" must be off                                                                                                              |
-| Blurry text                               | Report it with your display scale. The canvas should resize when the window moves to another display                                          |
-| Neovim does not reload a file             | Buffer has unsaved changes, or `autoread` is turned off in your config                                                                        |
-| Neovim process stays after Obsidian quits | `pgrep -fl 'nvim --embed'`. Report it                                                                                                         |
+| Problem                                   | Check                                                                                                                                                                                                                                                     |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "Cannot start Neovim"                     | "Neovim path" setting. Try the absolute path (`which nvim`)                                                                                                                                                                                               |
+| LSP or tools not found                    | "Start through login shell" is on. `:echo $PATH` in Neovim. Your PATH must be set in a login shell file (`~/.zprofile` or `~/.zshrc` for zsh)                                                                                                             |
+| Icons show as boxes                       | "Font family" must have a Nerd Font that is installed. The font name is the family name, for example `JetBrainsMono NFM`, not the file name. If you set `guifont` in Neovim, the settings font stays as fallback. The Neovim default `guifont` is ignored |
+| A key goes to Obsidian, not Neovim        | Is it in "Obsidian hotkeys to keep"? Does the Neovim tab have focus (cursor is a filled block, not a hollow box)? Click the tab                                                                                                                           |
+| A key does nothing                        | Is it an Obsidian hotkey that is not in the keep list? Neovim gets it. Check with `:nmap <key> :echo "got"<CR>`                                                                                                                                           |
+| `@`, `[`, `]` do not type                 | "Option key as Meta" must be off                                                                                                                                                                                                                          |
+| Blurry text                               | Report it with your display scale. The canvas should resize when the window moves to another display                                                                                                                                                      |
+| Neovim does not reload a file             | Buffer has unsaved changes, or `autoread` is turned off in your config                                                                                                                                                                                    |
+| Neovim process stays after Obsidian quits | `pgrep -fl 'nvim --embed'`. Report it                                                                                                                                                                                                                     |
 
 ## Limits and known issues
 

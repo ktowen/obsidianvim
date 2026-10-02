@@ -23,6 +23,15 @@ export const VIEW_TYPE = "obsidianvim";
 const MIN_API_LEVEL = 12; // Nvim 0.10
 const BUF_ENTER_EVENT = "obsidianvim_buf";
 
+/** Platform defaults from :h 'guifont'. Nvim sends one even if the user never set it, and none has Nerd Font icons. */
+const DEFAULT_GUIFONTS = new Set([
+	"",
+	"DejaVu Sans Mono,Courier New,monospace",
+	"SF Mono,Menlo,Monaco,Courier New,monospace",
+	"Source Code Pro,DejaVu Sans Mono,Courier New,monospace",
+	"Cascadia Code,Cascadia Mono,Consolas,Courier New,monospace",
+]);
+
 interface ApiInfo {
 	version: { api_level: number; major: number; minor: number };
 }
@@ -294,7 +303,8 @@ export class NvimView extends ItemView {
 		};
 		this.grid.onOption = (name, value) => {
 			if (name !== "guifont" || typeof value !== "string") return;
-			this.renderer.setFont(parseGuifont(value, this.baseFont()) ?? this.baseFont());
+			const font = DEFAULT_GUIFONTS.has(value) ? null : parseGuifont(value, this.baseFont());
+			this.renderer.setFont(font ?? this.baseFont());
 			this.scheduleResize();
 		};
 	}

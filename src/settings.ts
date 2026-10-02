@@ -76,7 +76,7 @@ export class SettingsTab extends PluginSettingTab {
 		text("NVIM_APPNAME", "Optional. Example: nvim-obsidian uses ~/.config/nvim-obsidian.", "appName");
 		text(
 			"Font family",
-			"CSS font-family. Use a Nerd Font for icons. Neovim 'guifont' overrides it.",
+			"CSS font-family. Use a Nerd Font for icons. A 'guifont' set in Neovim comes first.",
 			"fontFamily",
 			DEFAULT_SETTINGS.fontFamily,
 		);
