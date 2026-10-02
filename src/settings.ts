@@ -4,7 +4,7 @@ import type ObsidianVimPlugin from "./main";
 export interface Settings {
 	nvimPath: string;
 	loginShell: boolean;
-	appName: string;
+	extraArgs: string;
 	fontFamily: string;
 	fontSize: number;
 	lineHeight: number;
@@ -16,7 +16,7 @@ export interface Settings {
 export const DEFAULT_SETTINGS: Settings = {
 	nvimPath: "nvim",
 	loginShell: true,
-	appName: "",
+	extraArgs: "",
 	fontFamily: '"JetBrainsMono NFM", "Symbols Nerd Font Mono", Menlo, monospace',
 	fontSize: 14,
 	lineHeight: 1.2,
@@ -24,6 +24,9 @@ export const DEFAULT_SETTINGS: Settings = {
 	// Mod+Shift+E is the toggle hotkey. Without it here, it does not work while Neovim has focus.
 	passthrough: ["Mod+P", "Mod+Shift+E"],
 };
+
+// A command line, not UI text.
+const EXTRA_ARGS_EXAMPLE = 'NVIM_APPNAME=nvim-obsidian --cmd "set wrap"';
 
 export class SettingsTab extends PluginSettingTab {
 	constructor(
@@ -41,7 +44,7 @@ export class SettingsTab extends PluginSettingTab {
 			s[key] = value;
 			void this.plugin.saveSettings();
 		};
-		const text = (name: string, desc: string, key: "nvimPath" | "appName" | "fontFamily", fallback = "") =>
+		const text = (name: string, desc: string, key: "nvimPath" | "fontFamily", fallback = "") =>
 			new Setting(el)
 				.setName(name)
 				.setDesc(desc)
@@ -73,7 +76,21 @@ export class SettingsTab extends PluginSettingTab {
 			"Gives Neovim your shell PATH, so that LSP servers and other tools are found.",
 			"loginShell",
 		);
-		text("NVIM_APPNAME", "Optional. Example: nvim-obsidian uses ~/.config/nvim-obsidian.", "appName");
+		new Setting(el)
+			.setName("Extra arguments")
+			.setDesc(
+				"Added after --embed. Shell-like quotes. Leading NAME=value words set env vars. " +
+					'Example: NVIM_APPNAME=nvim-obsidian --cmd "set wrap" -c "lua require(\'x\')"',
+			)
+			.addTextArea((t) => {
+				t.inputEl.rows = 3;
+				t.inputEl.addClass("obsidianvim-args");
+				t.setPlaceholder(EXTRA_ARGS_EXAMPLE)
+					.setValue(s.extraArgs)
+					.onChange((v) => {
+						set("extraArgs", v);
+					});
+			});
 		text(
 			"Font family",
 			"CSS font-family. Use a Nerd Font for icons. A 'guifont' set in Neovim comes first.",

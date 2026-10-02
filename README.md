@@ -111,22 +111,46 @@ end
 
 The plugin also sets `autoread`. When a vault file changes outside Neovim, the plugin runs `:checktime`, so Neovim reloads the file (if the buffer has no unsaved changes).
 
-You can also use a separate config with the `NVIM_APPNAME` setting.
+You can also use a separate config, or any other Neovim argument, with the "Extra arguments" setting (see [Extra arguments](#extra-arguments)).
 
 ### Settings
 
-| Setting                   | Default                                                           | Notes                                                                                |
-| ------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| Neovim path               | `nvim`                                                            | Command name or absolute path                                                        |
-| Start through login shell | on                                                                | Starts Neovim through `$SHELL -l -c`, so it gets your shell PATH (LSP, `rg`, `node`) |
-| NVIM_APPNAME              | empty                                                             | Example: `nvim-obsidian` uses `~/.config/nvim-obsidian`                              |
-| Font family               | `"JetBrainsMono NFM", "Symbols Nerd Font Mono", Menlo, monospace` | CSS `font-family`. Use a Nerd Font for icons. `guifont` in Neovim overrides it       |
-| Font size                 | `14`                                                              | px                                                                                   |
-| Line height               | `1.2`                                                             | Multiplier of the font height                                                        |
-| Option key as Meta        | off                                                               | See [Keyboard](#keyboard)                                                            |
-| Obsidian hotkeys to keep  | `Mod+P`, `Mod+Shift+E`                                            | One per line. Format: `Mod+Shift+X`, `Ctrl+Tab`, `Alt+X`, `Cmd+X`                    |
+| Setting                   | Default                                                           | Notes                                                                                                                         |
+| ------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Neovim path               | `nvim`                                                            | Command name or absolute path                                                                                                 |
+| Start through login shell | on                                                                | Starts Neovim through `$SHELL -l -c`, so it gets your shell PATH (LSP, `rg`, `node`)                                          |
+| Extra arguments           | empty                                                             | Neovim arguments and env vars. See [Extra arguments](#extra-arguments)                                                        |
+| Font family               | `"JetBrainsMono NFM", "Symbols Nerd Font Mono", Menlo, monospace` | CSS `font-family`. Use a Nerd Font for icons. A `guifont` that you set in Neovim comes first, and this font stays as fallback |
+| Font size                 | `14`                                                              | px                                                                                                                            |
+| Line height               | `1.2`                                                             | Multiplier of the font height                                                                                                 |
+| Option key as Meta        | off                                                               | See [Keyboard](#keyboard)                                                                                                     |
+| Obsidian hotkeys to keep  | `Mod+P`, `Mod+Shift+E`                                            | One per line. Format: `Mod+Shift+X`, `Ctrl+Tab`, `Alt+X`, `Cmd+X`                                                             |
 
 Settings apply to Neovim tabs that you open after the change. Obsidian saves them in `<vault>/.obsidian/plugins/obsidianvim/data.json`.
+
+### Extra arguments
+
+The text goes to Neovim after the plugin arguments (`--embed` and the `--cmd` lines). The plugin parses it like a shell command line:
+
+- Spaces separate arguments. Use `'...'` or `"..."` for an argument with spaces. `\` escapes one character.
+- `NAME=value` words **at the start** are environment variables, not arguments.
+- `~/` at the start of a word changes to your home folder. There is no `$VAR` expansion and no globbing.
+- Newlines count as spaces, so you can put one argument per line.
+
+| Goal                                      | Extra arguments                                                                 |
+| ----------------------------------------- | ------------------------------------------------------------------------------- |
+| Separate config `~/.config/nvim-obsidian` | `NVIM_APPNAME=nvim-obsidian`                                                    |
+| Config file                               | `-u ~/.config/nvim/obsidian.lua`                                                |
+| Add options                               | `--cmd "set wrap linebreak"`                                                    |
+| Run Lua after startup                     | `-c "lua require('obsidian_setup')"`                                            |
+| No config, no plugins                     | `--clean`                                                                       |
+| All together                              | `NVIM_APPNAME=nvim-obsidian --cmd "set wrap" -c "lua vim.opt.conceallevel = 2"` |
+
+Your `--cmd` lines run after the plugin ones, so you can change `autoread` (for example `--cmd "set noautoread"`).
+Do not add `--embed`, `--headless`, `--listen` or file names: the plugin controls them.
+If the text has an unclosed quote, the Neovim tab shows the error.
+
+When the plugin loads, it moves the old "NVIM_APPNAME" setting to "Extra arguments" as `NVIM_APPNAME=<value>`.
 
 ## How it works
 
@@ -159,7 +183,7 @@ The plugin uses two APIs:
     $SHELL -l -c "exec nvim --embed --cmd 'let g:obsidianvim = 1' \
                   --cmd 'let g:obsidianvim_vault = $OBSIDIANVIM_VAULT' --cmd 'set autoread'"
     ```
-    `cwd` is the vault root. `OBSIDIANVIM_VAULT` and `NVIM_APPNAME` (optional) are in the environment. Without the login-shell setting, the plugin runs `nvim` directly.
+    Then come the "Extra arguments" (`src/args.ts` parses them). `cwd` is the vault root. `OBSIDIANVIM_VAULT` and the extra `NAME=value` variables are in the environment. Without the login-shell setting, the plugin runs `nvim` directly.
 2. `--embed` makes Neovim wait. It does not read `init.lua` until a UI attaches. So `--cmd` variables are set before the config runs.
 3. The view calls `nvim_get_api_info`. It refuses Neovim older than 0.10 (`api_level` < 12). The response also gives the RPC channel id.
 4. The view measures the font cell size and calculates how many columns and rows fit in the tab.
@@ -295,7 +319,8 @@ obsidianvim/
 ├── src/
 │   ├── main.ts              Plugin: settings, view registration, commands, hotkey, ribbon, header buttons, file menu, vault modify → checktime
 │   ├── view.ts              NvimView: process lifecycle, attach, BufEnter tracking, keyboard scope, mouse, resize, quit, unsaved-changes dialog
-│   ├── process.ts           Spawn nvim: login shell, env, --cmd variables
+│   ├── process.ts           Spawn nvim: login shell, env, --cmd variables, extra arguments
+│   ├── args.ts              Shell-like parser for "Extra arguments"
 │   ├── rpc.ts               msgpack-RPC client
 │   ├── settings.ts          Settings interface, defaults, settings tab
 │   ├── input/keys.ts        KeyboardEvent → Neovim key notation, hotkey spec matching
@@ -307,7 +332,9 @@ obsidianvim/
     ├── keys.test.ts                  Key translation table, hotkey specs
     ├── grid.test.ts                  grid_line / grid_scroll / resize, plus a real-nvim scroll test
     ├── rpc.integration.test.ts       Real nvim: attach, input, redraw events, error responses
-    └── process.integration.test.ts   Real nvim, with and without login shell: g:obsidianvim, vault var, autoread
+    ├── metrics.test.ts               guifont parsing
+    ├── args.test.ts                  "Extra arguments" parser: quotes, escapes, env, ~/
+    └── process.integration.test.ts   Real nvim, with and without login shell: g:obsidianvim, vault var, autoread, extra args
 ```
 
 ## Development
@@ -382,46 +409,52 @@ Do these in the test vault. Keep the dev console (`Cmd+Opt+I`) open, and write d
 20. [ ] `:echo $PATH` contains `/opt/homebrew/bin`. LSP works on a file with a server (for example a `.lua` file).
 21. [ ] Settings → turn off "Start through login shell", set Neovim path to `/opt/homebrew/bin/nvim`, open a new tab → it starts. `:echo $PATH` is the short system PATH.
 22. [ ] Settings → Neovim path `nvim-does-not-exist`, open a new tab → a clear error and a Restart button. Restore the setting.
-23. [ ] NVIM_APPNAME `nvim-test` (a config that does not exist) → Neovim starts with the default config.
+23. [ ] Extra arguments `NVIM_APPNAME=nvim-test` (a config that does not exist) → Neovim starts with the default config.
+24. [ ] Extra arguments `--cmd "let g:hello = 'a b'"` → `:echo g:hello` shows `a b`.
+25. [ ] Extra arguments `--cmd "set wrap` (unclosed quote) → the tab shows `Unclosed " in extra arguments`. Clear the setting.
 
 ### Keyboard
 
-24. [ ] `Cmd+P` opens the Obsidian command palette while Neovim has focus.
-25. [ ] `Cmd+W`, `Cmd+O`, `Ctrl+Tab` do not trigger Obsidian. Check that Neovim gets them: `:nmap <D-o> :echo "got D-o"<CR>`, then `Cmd+O`.
-26. [ ] `Esc` leaves insert mode and does not close or blur anything.
-27. [ ] Insert mode: type `á é í ó ú ñ ü ¿ ¡ @ # [ ] { } \ | < >`. Every character is correct.
-28. [ ] `Ctrl+W`, `Ctrl+O`, `Ctrl+V` (visual block), `Ctrl+R "` work.
-29. [ ] Arrows, Home/End, PageUp/PageDown, Backspace, Delete, Tab, Shift+Tab, F1.
-30. [ ] `:` cmdline, `/` search, `<C-n>` / LSP completion popup are visible.
-31. [ ] "Option key as Meta" on → `:nmap <M-j> :echo "M-j"<CR>`, press Option+J → the message shows. Turn it off again.
-32. [ ] Hold a key (for example `j`) → key repeat works and scroll is smooth.
+26. [ ] `Cmd+P` opens the Obsidian command palette while Neovim has focus.
+27. [ ] `Cmd+W`, `Cmd+O`, `Ctrl+Tab` do not trigger Obsidian. Check that Neovim gets them: `:nmap <D-o> :echo "got D-o"<CR>`, then `Cmd+O`.
+28. [ ] `Esc` leaves insert mode and does not close or blur anything.
+29. [ ] Insert mode: type `á é í ó ú ñ ü ¿ ¡ @ # [ ] { } \ | < >`. Every character is correct.
+30. [ ] `Ctrl+W`, `Ctrl+O`, `Ctrl+V` (visual block), `Ctrl+R "` work.
+31. [ ] Arrows, Home/End, PageUp/PageDown, Backspace, Delete, Tab, Shift+Tab, F1.
+32. [ ] `:` cmdline, `/` search, `<C-n>` / LSP completion popup are visible.
+33. [ ] "Option key as Meta" on → `:nmap <M-j> :echo "M-j"<CR>`, press Option+J → the message shows. Turn it off again.
+34. [ ] Hold a key (for example `j`) → key repeat works and scroll is smooth.
 
 ### Clipboard
 
-33. [ ] `Cmd+V` in insert mode pastes multi-line text as is, with no extra indent.
-34. [ ] `"+y` in Neovim, then paste in another app → same text.
+35. [ ] `Cmd+V` in insert mode pastes multi-line text as is, with no extra indent.
+36. [ ] `"+y` in Neovim, then paste in another app → same text.
 
 ### Mouse
 
-35. [ ] Click moves the cursor to the clicked cell.
-36. [ ] Drag selects in visual mode.
-37. [ ] Wheel scrolls in both directions, on a trackpad and on a mouse.
-38. [ ] Click another Obsidian pane, then click Neovim → keys go to Neovim again.
+37. [ ] Click moves the cursor to the clicked cell.
+38. [ ] Drag selects in visual mode.
+39. [ ] Wheel scrolls in both directions, on a trackpad and on a mouse.
+40. [ ] Click another Obsidian pane, then click Neovim → keys go to Neovim again.
 
 ### Rendering
 
-39. [ ] Nerd Font icons show (file tree, statusline, diagnostic signs).
-40. [ ] Colors match your theme. Bold, italic, underline, undercurl (spelling or diagnostics), strikethrough.
-41. [ ] Cursor shape: block in normal mode, bar in insert mode, underline in replace mode (`r`).
-42. [ ] Wide chars and emoji: type `日本語 😀` → no overlap, and the cursor moves by 2 cells.
-43. [ ] Text is sharp on a retina display. Move the window to a non-retina display (if you have one) → still sharp.
-44. [ ] Resize the pane, split it, open the sidebar → Neovim fills the pane with no gap or cut text.
-45. [ ] `:set guifont=Menlo:h16` → font and size change, and the grid fits again.
-46. [ ] Big file (for example 5000 lines) → `G`, `gg`, `Ctrl+D` are fast and show no artifacts.
-47. [ ] Unfocus Neovim → the cursor shows as a hollow box.
+41. [ ] Nerd Font icons show (file tree, statusline, diagnostic signs).
+42. [ ] Colors match your theme. Bold, italic, underline, undercurl (spelling or diagnostics), strikethrough.
+43. [ ] Cursor shape: block in normal mode, bar in insert mode, underline in replace mode (`r`).
+44. [ ] Wide chars and emoji: type `日本語 😀` → no overlap, and the cursor moves by 2 cells.
+45. [ ] Text is sharp on a retina display. Move the window to a non-retina display (if you have one) → still sharp.
+46. [ ] Resize the pane, split it, open the sidebar → Neovim fills the pane with no gap or cut text.
+47. [ ] `:set guifont=Menlo:h16` → font and size change, and the grid fits again.
+48. [ ] Big file (for example 5000 lines) → `G`, `gg`, `Ctrl+D` are fast and show no artifacts.
+49. [ ] Unfocus Neovim → the cursor shows as a hollow box.
 
 ### Sync with Obsidian
 
-48. [ ] Same note open in Neovim and in an Obsidian editor (two tabs). Edit in Obsidian → Neovim reloads it (if Neovim has no unsaved changes).
-49. [ ] `:w` in Neovim → the Obsidian tab shows the change.
-50. [ ] Two Neovim tabs with different notes → each one works on its own. Closing one does not affect the other.
+50. [ ] Same note open in Neovim and in an Obsidian editor (two tabs). Edit in Obsidian → Neovim reloads it (if Neovim has no unsaved changes).
+51. [ ] `:w` in Neovim → the Obsidian tab shows the change.
+52. [ ] Two Neovim tabs with different notes → each one works on its own. Closing one does not affect the other.
+
+## License
+
+MIT. See [LICENSE](LICENSE).

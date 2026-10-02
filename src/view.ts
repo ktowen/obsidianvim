@@ -158,12 +158,18 @@ export class NvimView extends ItemView {
 		this.stopping = false;
 		this.attached = false;
 
-		const proc = spawnNvim({
-			nvimPath: this.settings.nvimPath,
-			loginShell: this.settings.loginShell,
-			appName: this.settings.appName,
-			cwd: this.vaultPath(),
-		});
+		let proc: ChildProcess;
+		try {
+			proc = spawnNvim({
+				nvimPath: this.settings.nvimPath,
+				loginShell: this.settings.loginShell,
+				extraArgs: this.settings.extraArgs,
+				cwd: this.vaultPath(),
+			});
+		} catch (e) {
+			this.showError(`${errorMessage(e)}. Check "Extra arguments" in the settings.`);
+			return;
+		}
 		this.proc = proc;
 		this.watchProcess(proc);
 

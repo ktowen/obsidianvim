@@ -1,15 +1,17 @@
 import { spawn, type ChildProcess } from "child_process";
+import { parseExtraArgs } from "./args";
 
 export interface SpawnOptions {
 	nvimPath: string;
 	/** Obsidian started from the Dock has PATH=/usr/bin:/bin:/usr/sbin:/sbin, so nvim would not find LSP servers. */
 	loginShell: boolean;
-	/** NVIM_APPNAME, to use a separate config. Empty: the default config. */
-	appName: string;
+	/** See parseExtraArgs. Throws on a parse error. */
+	extraArgs: string;
 	cwd?: string;
 }
 
 export function spawnNvim(o: SpawnOptions): ChildProcess {
+	const extra = parseExtraArgs(o.extraArgs);
 	const args = [
 		"--embed",
 		// Like g:vscode in vscode-neovim: lets the user config detect Obsidian.
@@ -19,9 +21,10 @@ export function spawnNvim(o: SpawnOptions): ChildProcess {
 		"let g:obsidianvim_vault = $OBSIDIANVIM_VAULT",
 		"--cmd",
 		"set autoread",
+		// Last, so that user --cmd lines can override ours.
+		...extra.args,
 	];
-	const env: NodeJS.ProcessEnv = { ...process.env, OBSIDIANVIM_VAULT: o.cwd ?? "" };
-	if (o.appName) env.NVIM_APPNAME = o.appName;
+	const env = { ...process.env, OBSIDIANVIM_VAULT: o.cwd ?? "", ...extra.env };
 
 	if (o.loginShell && process.platform !== "win32") {
 		const shell = process.env.SHELL ?? "/bin/zsh";

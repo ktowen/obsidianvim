@@ -102,7 +102,10 @@ export default class ObsidianVimPlugin extends Plugin {
 	}
 
 	async loadSettings(): Promise<void> {
-		const data = (await this.loadData()) as Partial<Settings> | null;
+		const data = ((await this.loadData()) ?? {}) as Partial<Settings> & { appName?: string };
+		// 0.0.1 had an NVIM_APPNAME setting.
+		if (data.appName && !data.extraArgs) data.extraArgs = `NVIM_APPNAME=${data.appName}`;
+		delete data.appName;
 		this.settings = { ...DEFAULT_SETTINGS, ...data };
 	}
 

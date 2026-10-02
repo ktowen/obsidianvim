@@ -34,3 +34,8 @@
 	text-align: center;
 	white-space: pre-wrap;
 }
+
+.obsidianvim-args {
+	width: 100%;
+	font-family: var(--font-monospace);
+}
